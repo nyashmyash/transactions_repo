@@ -1,0 +1,7 @@
+# requirements.txt
+fastapi
+uvicorn[standard]
+SQLAlchemy
+psycopg2-binary
+pydantic
+sqlalchemy-stubs

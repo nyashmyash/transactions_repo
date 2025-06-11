@@ -1,0 +1,18 @@
+[
+    {
+        "id": "tx0001",
+        "user_id": 1,
+        "amount": -50.0,
+        "currency": "USD",
+        "category": "Food",
+        "timestamp": "2023-10-01T12:00:00"
+    },
+    {
+        "id": "tx0002",
+        "user_id": 2,
+        "amount": -20.0,
+        "currency": "USD",
+        "category": "Transport",
+        "timestamp": "2023-10-02T15:30:00"
+    }
+]
