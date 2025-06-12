@@ -13,6 +13,22 @@
         "amount": -20.0,
         "currency": "USD",
         "category": "Transport",
-        "timestamp": "2023-10-02T15:30:00"
+        "timestamp": "2023-10-10T15:30:00"
+    },
+    {
+        "id": "tx0003",
+        "user_id": 2,
+        "amount": -210.0,
+        "currency": "USD",
+        "category": "Transport",
+        "timestamp": "2023-10-11T15:30:00"
+    },
+    {
+        "id": "tx0004",
+        "user_id": 2,
+        "amount": -1020.0,
+        "currency": "USD",
+        "category": "Transport",
+        "timestamp": "2023-10-12T15:30:00"
     }
 ]

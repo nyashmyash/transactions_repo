@@ -7,6 +7,8 @@ from sqlalchemy.orm import sessionmaker, Session
 from db.transaction import TransactionDB
 from db.user import UserDB
 from models.transaction import Transaction
+from models.user import  User
+from db.base import Base
 from utils import get_week_start_end_date
 # Database Configuration
 DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://user:password@localhost:5432/dbname") #Default URL, override by environment variable
@@ -15,6 +17,18 @@ engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
+users_data = [
+    {
+        'username': 'Dima',
+        'weekly_limit' : -1000,
+        'daily_limit' : -100,
+    },
+    {
+        'username': 'Vasya',
+        'weekly_limit': -1200,
+        'daily_limit': -130,
+    }
+]
 
 # Dependency Injection
 def get_db():
@@ -45,26 +59,41 @@ async def read_transaction(transaction_id: str, db: Session = Depends(get_db)):
 
 
 def check_limits(transaction: TransactionDB, user_limits, db: Session):
-    user_db = db.query(UserDB).filter(UserDB.user_id == transaction.user_id).first()
+    user_db = db.query(UserDB).filter(UserDB.id == transaction.user_id).first()
     amount = transaction.amount
     timestamp = transaction.timestamp
-    timestamp_s = f"day {timestamp.strftime('%d %b %Y')}"
+    day_s = f"day {timestamp.strftime('%d %b %Y')}"
     start, end = get_week_start_end_date(timestamp)
     week_s = f"week {start.strftime('%d %b %Y')}"
 
     if user_db:
-        if user_db.user_id not in user_limits:
-            user_limits[user_db.user_id] = {timestamp_s: amount , week_s: amount}
-        user = user_limits[user_db.user_id]
-        if user[timestamp_s] + amount > user_db.daily_limit:
-            print(f'for user {user_db.user_id} over limit in day {timestamp_s} amount {user[timestamp_s] + amount - user_db.daily_limit}')
-        if user[week_s] + amount > user_db.weekly_limit:
-            print(f'for user {user_db.user_id} over limit in week {timestamp_s} amount {user[week_s] + amount - user_db.weekly_limit}')
-        user[timestamp_s] += amount
-        user[week_s] += amount
+        if user_db.id not in user_limits:
+            user_limits[user_db.id] = {day_s: amount , week_s: amount}
+        user = user_limits[user_db.id]
+        if abs(user[day_s] + amount) > abs(user_db.daily_limit):
+            print(f'for user {user_db.id} over limit in {day_s} amount {user[day_s] + amount - user_db.daily_limit}')
+        if abs(user[week_s] + amount) > abs(user_db.weekly_limit):
+            print(f'for user {user_db.id} over limit in {week_s} amount {user[week_s] + amount - user_db.weekly_limit}')
+
+        user[day_s] = user.get(day_s, 0) + amount
+        user[week_s] = user.get(week_s, 0) + amount
     else:
         print('User not found')
 
+
+def load_users(data: list, db) -> List[User]:
+    users = []
+    for item in data:
+        try:
+            user = User(**item)
+            db_user = UserDB(**user.model_dump())
+            db.add(db_user)
+            users.append(user)
+        except ValueError as e:
+            print(f"Validation error for item: {item}. Error: {e}")
+            pass
+    db.commit()
+    return users
 
 
 def load_transactions_from_json(filename: str, db: Session) -> List[Transaction]:
@@ -78,7 +107,7 @@ def load_transactions_from_json(filename: str, db: Session) -> List[Transaction]
         for item in data:
             try:
                 transaction = Transaction(**item)
-                db_transaction = TransactionDB(transaction.model_dump())
+                db_transaction = TransactionDB(**transaction.model_dump())
                 check_limits(db_transaction, user_limits, db)
                 db.add(db_transaction)
                 transactions.append(transaction)
@@ -88,7 +117,7 @@ def load_transactions_from_json(filename: str, db: Session) -> List[Transaction]
     else:
         try:
             transaction = Transaction(**data)
-            db_transaction = TransactionDB(transaction.model_dump())
+            db_transaction = TransactionDB(**transaction.model_dump())
             check_limits(db_transaction, user_limits, db)
             db.add(db_transaction)
             transactions.append(transaction)
@@ -98,6 +127,12 @@ def load_transactions_from_json(filename: str, db: Session) -> List[Transaction]
 
     db.commit()
     return transactions
+
+@app.get("/load_users")
+async def load_data(db: Session = Depends(get_db)):
+    Base.metadata.create_all(bind=engine)
+    loaded_users= load_users(users_data, db)
+    return {"message": "Data users loaded successfully", "number of users": len(loaded_users)}
 
 
 @app.get("/load_data")
