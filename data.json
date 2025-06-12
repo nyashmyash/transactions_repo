@@ -1,6 +1,6 @@
 [
     {
-        "id": "tx0001",
+        "id": "tx0006",
         "user_id": 1,
         "amount": -50.0,
         "currency": "USD",
@@ -8,7 +8,7 @@
         "timestamp": "2023-10-01T12:00:00"
     },
     {
-        "id": "tx0002",
+        "id": "tx0007",
         "user_id": 2,
         "amount": -20.0,
         "currency": "USD",
@@ -16,19 +16,27 @@
         "timestamp": "2023-10-10T15:30:00"
     },
     {
-        "id": "tx0003",
+        "id": "tx0008",
         "user_id": 2,
         "amount": -210.0,
         "currency": "USD",
-        "category": "Transport",
+        "category": "Entertainment",
         "timestamp": "2023-10-11T15:30:00"
     },
     {
-        "id": "tx0004",
+        "id": "tx0009",
         "user_id": 2,
-        "amount": -1020.0,
+        "amount": -520.0,
         "currency": "USD",
-        "category": "Transport",
+        "category": "Utilities",
         "timestamp": "2023-10-12T15:30:00"
+    },
+    {
+        "id": "tx0010",
+        "user_id": 1,
+        "amount": -120.0,
+        "currency": "USD",
+        "category": "Other",
+        "timestamp": "2023-10-01T15:30:00"
     }
 ]
