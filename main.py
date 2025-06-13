@@ -4,10 +4,13 @@ from sqlalchemy import  create_engine, cast
 from sqlalchemy.orm import sessionmaker, Session
 from db.transaction import TransactionDB
 from models.transaction import Transaction
+from models.userstatsresponse import UserStatsResponse
 from db.base import Base
 from utils import  load_users, load_transactions_from_json, get_user_stats_db
-# Database Configuration
-DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://user:password@localhost:5432/dbname") #Default URL, override by environment variable
+from typing import Optional
+from datetime import date
+
+DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://user:password@localhost:5432/dbname")
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -35,7 +38,6 @@ def get_db():
         db.close()
 
 
-# FastAPI Endpoints
 app = FastAPI()
 
 @app.post("/transactions/")
@@ -65,15 +67,6 @@ async def load_data(db: Session = Depends(get_db)):
     loaded_transactions = load_transactions_from_json("data.json", db)
     return {"message": "Data loaded successfully", "number of records": len(loaded_transactions)}
 
-
-from pydantic import BaseModel
-from typing import Dict, Optional
-from datetime import date
-
-class UserStatsResponse(BaseModel):
-    total_spent: float
-    by_category: Dict[str, float]
-    daily_average: float
 
 @app.get("/users/{user_id}/stats", response_model=UserStatsResponse)
 async def get_user_stats(user_id: int, from_date: Optional[date] = None, to_date: Optional[date] = None, db: Session = Depends(get_db)):

@@ -8,6 +8,9 @@ from typing import List
 import json
 from datetime import date
 from sqlalchemy import  func
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def get_week_start_end_date(date_):
@@ -30,14 +33,14 @@ def check_limits(transaction: TransactionDB, user_limits, db: Session):
             user_limits[user_db.id] = {day_s: amount , week_s: amount}
         user = user_limits[user_db.id]
         if abs(user.get(day_s, 0) + amount) > abs(user_db.daily_limit):
-            print(f'for user {user_db.id} over limit in {day_s} amount {user.get(day_s, 0)+ amount - user_db.daily_limit}')
+            logger.warning(f'for user {user_db.id} over limit in {day_s} amount {user.get(day_s, 0)+ amount - user_db.daily_limit}')
         if abs(user.get(week_s, 0) + amount) > abs(user_db.weekly_limit):
-            print(f'for user {user_db.id} over limit in {week_s} amount {user.get(week_s, 0) + amount - user_db.weekly_limit}')
+            logger.warning(f'for user {user_db.id} over limit in {week_s} amount {user.get(week_s, 0) + amount - user_db.weekly_limit}')
 
         user[day_s] = user.get(day_s, 0) + amount
         user[week_s] = user.get(week_s, 0) + amount
     else:
-        print('User not found')
+        logger.error('User not found')
 
 
 def load_users(data: list, db) -> List[User]:
@@ -49,7 +52,7 @@ def load_users(data: list, db) -> List[User]:
             db.add(db_user)
             users.append(user)
         except ValueError as e:
-            print(f"Validation error for item: {item}. Error: {e}")
+            logger.error(f"Validation error for item: {item}. Error: {e}")
             pass
     db.commit()
     return users
@@ -71,7 +74,7 @@ def load_transactions_from_json(filename: str, db: Session) -> List[Transaction]
                 db.add(db_transaction)
                 transactions.append(transaction)
             except ValueError as e:
-                print(f"Validation error for item: {item}. Error: {e}")
+                logger.error(f"Validation error for item: {item}. Error: {e}")
                 pass
     else:
         try:
@@ -81,7 +84,7 @@ def load_transactions_from_json(filename: str, db: Session) -> List[Transaction]
             db.add(db_transaction)
             transactions.append(transaction)
         except ValueError as e:
-            print(f"Validation error for item: {data}. Error: {e}")
+            logger.error(f"Validation error for item: {data}. Error: {e}")
             pass
 
     db.commit()
@@ -89,14 +92,14 @@ def load_transactions_from_json(filename: str, db: Session) -> List[Transaction]
 
 
 def get_user_stats_db(db: Session, user_id: int, start_date: date, end_date: date):
-    # Получаем общие траты
+    # We get the total expenses
     total_spent_query = db.query(func.sum(TransactionDB.amount)).filter(
         TransactionDB.user_id == user_id,
         TransactionDB.timestamp >= start_date,
         TransactionDB.timestamp <= end_date
     ).scalar()
 
-    # Получаем траты по категориям
+    # We get expenses by categories
     by_category_query = db.query(
         TransactionDB.category,
         func.sum(TransactionDB.amount).label('total_amount')
@@ -106,11 +109,18 @@ def get_user_stats_db(db: Session, user_id: int, start_date: date, end_date: dat
         TransactionDB.timestamp <= end_date
     ).group_by(TransactionDB.category).all()
 
-    # Получаем средние траты в день
-    total_days = (end_date - start_date).days + 1  # Включаем оба конца
+    # We get average expenses per day
+    total_days = (end_date - start_date).days + 1  # We turn on both ends
+    if total_spent_query is None:
+        logger.error(f"No expenses during this period of time {start_date} to {end_date}")
+        return {
+        "total_spent": 0,
+        "by_category": {},
+        "daily_average": 0
+    }
     daily_average = total_spent_query / total_days if total_days > 0 else 0
 
-    # Формируем результат
+    # We form the result
     by_category = {category: total_amount for category, total_amount in by_category_query}
 
     return {
