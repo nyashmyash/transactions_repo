@@ -121,10 +121,10 @@ def get_user_stats_db(db: Session, user_id: int, start_date: date, end_date: dat
     daily_average = total_spent_query / total_days if total_days > 0 else 0
 
     # We form the result
-    by_category = {category: total_amount for category, total_amount in by_category_query}
+    by_category = {category: abs(total_amount) for category, total_amount in by_category_query}
 
     return {
-        "total_spent": total_spent_query or 0,
+        "total_spent": abs(total_spent_query or 0),
         "by_category": by_category,
-        "daily_average": daily_average
+        "daily_average": abs(daily_average)
     }
